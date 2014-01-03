@@ -82,6 +82,7 @@ module.exports = function(grunt) {
           } else {
             output.unshift("define(function() {");
           }
+          output.push("});");
         }
         grunt.file.write(files.dest, output.join("\n"));
         grunt.log.writeln("File '" + files.dest + "' created.");
