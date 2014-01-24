@@ -1,5 +1,5 @@
 /*
- * grunt--cnontrib-hogan
+ * grunt--contrib-hogan
  * https://github.com/vanetix/grunt-contrib-hogan
  *
  * Copyright (c) 2012 Matt McFarland
@@ -16,16 +16,19 @@ module.exports = function(grunt) {
    */
 
   grunt.registerMultiTask('hogan', 'Compile hogan templates.', function() {
-    var src, options, compiled,
+    var src, nsInfo, options, compiled,
         srcFiles, filename, output = [],
         head, moduleNames, variableNames;
 
     options = this.options({
+      namespace: "Templates",
       templateOptions: { asString: true },
       defaultName: function(filename) {
         return filename;
       }
     });
+
+    nsInfo = helpers.getNamespaceDeclaration(options.namespace);
 
     this.files.forEach(function(files) {
       files.src.forEach(function(file) {
@@ -49,10 +52,12 @@ module.exports = function(grunt) {
         }
 
         filename = options.defaultName(file);
-        output.push("return new Hogan.Template(" + compiled + ");");
+        output.push(nsInfo.namespace +
+          "[" + JSON.stringify(filename) + "] = new Hogan.Template(" + compiled + ");");
       });
 
       if(output.length > 0) {
+        output.unshift(nsInfo.declaration);
 
         if(options.amdWrapper) {
           if(options.prettify) {
@@ -82,6 +87,13 @@ module.exports = function(grunt) {
           } else {
             output.unshift("define(function() {");
           }
+
+          output.push((options.prettify ? "  " : "") + "return " + nsInfo.namespace + ";\n});");
+        }
+        if(options.commonJsWrapper) {
+          output.push("\nif(typeof module !== 'undefined' && typeof module.exports !== 'undefined') {");
+          output.push("  module.exports = " + nsInfo.namespace + ";");
+          output.push("}");
         }
         grunt.file.write(files.dest, output.join("\n"));
         grunt.log.writeln("File '" + files.dest + "' created.");
